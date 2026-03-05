@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+*.egg
+*.manifest
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+
+# IDE/editor
+.vscode/
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*.tmp
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Caches
+.cache/
+.mypy_cache/
+.pytype/
+.pyre/
+pytest_cache/
+
+# Build & dist
+build/
+dist/
+site/
+htmlcov/
+.coverage*
+coverage.xml
+*.cover
+
+# Environment/config
+.env
+.env.*
+*.local
+*.bak
+
+# Data & artifacts
+# Avoid committing large local datasets or trained models by default
+
+!requirements*.csv  # allow any requirements in csv format if you use them
+*.tsv
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.joblib
+*.pkl
+models/
+artifacts/
+checkpoints/
+
+# Docker
+*.tar
+
+# Node (if any frontend assets later)
+node_modules/
+
+# Reports/outputs
+outputs/
+reports/
+
+# Test
+.tox/
