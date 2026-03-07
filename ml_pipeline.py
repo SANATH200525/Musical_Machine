@@ -85,13 +85,20 @@ class MLArtifacts:
     knn : NearestNeighbors
         Trained nearest-neighbor index over feature_matrix.
     id_to_index : Dict[str, int]
-        Map from track_id to row index in df/feature_matrix.
+        Map from surrogate _row_key (str) to positional row index in
+        df/feature_matrix. Using _row_key instead of track_id supports
+        rows where the same track_id appears under multiple genres.
     index_to_id : List[str]
-        Reverse map of id_to_index for quick index to track_id.
+        Reverse map from positional index to surrogate _row_key string.
+        Values are _row_key strings, not original track_ids.
     label_encoder : Dict[str, int]
         String label to integer class mapping for genres.
     label_decoder : Dict[int, str]
         Integer class to string label mapping for genres.
+    track_id_to_row_keys : Dict[str, List[int]]
+        Maps each original track_id string to a list of all integer _row_key
+        values that share that track_id (handles one-to-many duplicates).
+        Built once at startup for O(1) lookup in API endpoints.
     """
 
     df: pd.DataFrame
@@ -103,6 +110,7 @@ class MLArtifacts:
     index_to_id: List[str]
     label_encoder: Dict[str, int]
     label_decoder: Dict[int, str]
+    track_id_to_row_keys: Dict[str, List[int]]
 
 
 def load_and_preprocess(csv_path: str) -> Tuple[pd.DataFrame, np.ndarray, MinMaxScaler]:
@@ -125,7 +133,8 @@ def load_and_preprocess(csv_path: str) -> Tuple[pd.DataFrame, np.ndarray, MinMax
     - Missing numeric values are imputed via dropna for simplicity in prototype.
     - Categorical columns are kept as-is for metadata; we model on numeric features only.
     """
-    df = pd.read_csv(csv_path)
+    # [FIX-1] Use index_col=0 so a saved CSV index like "Unnamed: 0" becomes the DataFrame index and does not pollute columns
+    df = pd.read_csv(csv_path, index_col=0)
 
     # Ensure required columns exist
     required_cols = set([ID_COLUMN, GENRE_COLUMN] + NUMERIC_FEATURE_COLUMNS)
@@ -136,8 +145,11 @@ def load_and_preprocess(csv_path: str) -> Tuple[pd.DataFrame, np.ndarray, MinMax
     # Drop rows with NA in numeric or id/genre
     df = df.dropna(subset=[ID_COLUMN, GENRE_COLUMN] + NUMERIC_FEATURE_COLUMNS).copy()
 
-    # Deduplicate by track_id (keep first occurrence)
-    df = df.drop_duplicates(subset=[ID_COLUMN]).reset_index(drop=True)
+    # [FIX-2] Do NOT drop duplicate track_ids; instead, create a surrogate row key after reset_index
+    df = df.reset_index(drop=True)
+    # [FIX-2] Introduce a stable surrogate integer key to uniquely reference rows across duplicate track_ids
+    # [FIX-2] This avoids discarding valid rows when the same track appears under multiple genres.
+    df["_row_key"] = df.index.astype(int)
 
     X = df[NUMERIC_FEATURE_COLUMNS].values.astype(float)
 
@@ -149,6 +161,11 @@ def load_and_preprocess(csv_path: str) -> Tuple[pd.DataFrame, np.ndarray, MinMax
 
 def train_genre_model(df: pd.DataFrame, X_scaled: np.ndarray) -> Tuple[RandomForestClassifier, Dict[str, int], Dict[int, str], float]:
     """Train a Random Forest classifier to predict track_genre.
+
+    [FIX-5] Prototype-optimised hyperparameters
+    -------------------------------------------
+    The classifier hyperparameters are set to balance startup speed and memory
+    usage vs. accuracy in this prototype. For production, tune via cross-validation.
 
     Parameters
     ----------
@@ -179,11 +196,12 @@ def train_genre_model(df: pd.DataFrame, X_scaled: np.ndarray) -> Tuple[RandomFor
         X_scaled, y, test_size=0.2, random_state=42, stratify=y if len(unique_labels) > 1 else None
     )
 
+    # [FIX-5] Reduce estimators, cap depth, and increase min_samples_leaf to speed up startup and reduce memory
     model = RandomForestClassifier(
-        n_estimators=200,
-        max_depth=None,
+        n_estimators=100,
+        max_depth=20,
         min_samples_split=2,
-        min_samples_leaf=1,
+        min_samples_leaf=2,
         n_jobs=-1,
         random_state=42,
     )
@@ -215,16 +233,25 @@ def build_knn_index(X_scaled: np.ndarray, n_neighbors: int = 50, metric: str = "
 
 
 def build_index_maps(df: pd.DataFrame) -> Tuple[Dict[str, int], List[str]]:
-    """Create bi-directional mappings between track_id and dataset row index."""
-    ids = df[ID_COLUMN].astype(str).tolist()
-    id_to_index = {tid: i for i, tid in enumerate(ids)}
-    index_to_id = ids
+    """Create bi-directional mappings between surrogate _row_key and dataset row index.
+
+    [FIX-2] Surrogate key rationale
+    -------------------------------
+    The dataset contains many duplicate track_id values (same song under multiple genres).
+    Instead of dropping duplicates, we create a surrogate integer key `_row_key` equal to
+    the DataFrame's integer index and use it internally for lookups to avoid silent data loss.
+    """
+    # [FIX-2] Use _row_key as the lookup ID
+    keys = df["_row_key"].astype(int).astype(str).tolist()
+    id_to_index = {kid: i for i, kid in enumerate(keys)}
+    index_to_id = keys
     return id_to_index, index_to_id
 
 
 def _get_seed_vector_by_track_id(artifacts: MLArtifacts, track_id: str) -> np.ndarray:
-    """Return the scaled feature vector for a given track_id.
+    """Return the scaled feature vector for a given track key.
 
+    [FIX-2] Note: `track_id` parameter now refers to the surrogate `_row_key` used internally.
     Raises KeyError if the id is unknown.
     """
     idx = artifacts.id_to_index[str(track_id)]
@@ -251,6 +278,8 @@ def recommend_similar_tracks(
     -------
     List[dict]
         Each dict includes: track_id, track_name, artists, distance (cosine distance).
+        [FIX-2] The returned `track_id` here is the original dataset track_id for display; lookups
+        internally use the surrogate `_row_key`.
 
     Notes
     -----
@@ -270,7 +299,8 @@ def recommend_similar_tracks(
             continue  # exclude the seed itself
         row = artifacts.df.iloc[idx]
         results.append({
-            "track_id": artifacts.index_to_id[idx],
+            # [FIX-2] Expose original track_id for display; internal routing uses surrogate keys
+            "track_id": row.get(ID_COLUMN, None),
             "track_name": row.get(TRACK_NAME_COLUMN, None),
             "artists": row.get(ARTISTS_COLUMN, None),
             "distance": float(dist),
@@ -361,8 +391,9 @@ def poor_mental_state_flag(rolling_avg: Dict[str, float], valence_thresh: float 
     -------------
     Flag if rolling average valence < 0.26 AND energy < 0.47.
     """
-    valence = rolling_avg.get("valence", 1.0)
-    energy = rolling_avg.get("energy", 1.0)
+    # [FIX-4] Safe-fail-low: treat missing values as low (0.0) so we err on recommending intervention
+    valence = rolling_avg.get("valence", 0.0)
+    energy = rolling_avg.get("energy", 0.0)
     return (valence < valence_thresh) and (energy < energy_thresh)
 
 
@@ -427,7 +458,8 @@ def intervention_recommendations(
     for dist, idx in zip(distances, indices):
         row = artifacts.df.iloc[idx]
         recs.append({
-            "track_id": artifacts.index_to_id[idx],
+            # [FIX-2] Expose original track_id for display; internal routing uses surrogate keys
+            "track_id": row.get(ID_COLUMN, None),
             "track_name": row.get(TRACK_NAME_COLUMN, None),
             "artists": row.get(ARTISTS_COLUMN, None),
             "distance": float(dist),
@@ -456,6 +488,10 @@ def fit_all(csv_path: str) -> MLArtifacts:
     genre_model, enc, dec, _ = train_genre_model(df, X_scaled)
     knn = build_knn_index(X_scaled)
     id_to_index, index_to_id = build_index_maps(df)
+    # Build O(1) track_id -> list of _row_key ints lookup to avoid per-request O(N) scans
+    track_id_to_row_keys: Dict[str, List[int]] = {}
+    for rk, tid in zip(df["_row_key"].astype(int), df["track_id"].astype(str)):
+        track_id_to_row_keys.setdefault(tid, []).append(int(rk))
 
     return MLArtifacts(
         df=df,
@@ -467,4 +503,5 @@ def fit_all(csv_path: str) -> MLArtifacts:
         index_to_id=index_to_id,
         label_encoder=enc,
         label_decoder=dec,
+        track_id_to_row_keys=track_id_to_row_keys,
     )

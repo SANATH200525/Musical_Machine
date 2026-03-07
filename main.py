@@ -35,6 +35,8 @@ from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
+# [FIX-3] Use lifespan context manager instead of deprecated startup event
+from contextlib import asynccontextmanager
 
 from ml_pipeline import (
     fit_all,
@@ -82,25 +84,27 @@ class PredictRequest(BaseModel):
 
 class PlayTrackRequest(BaseModel):
     user_id: str = Field(..., description="Unique identifier for a user session")
-    track_id: str = Field(..., description="Track ID as present in the dataset")
+    track_id: str = Field(..., description="Track ID as present in the dataset (display only; internal routing via _row_key)")
 
 
-app = FastAPI(title="Affect-Aware Music Recommendation System")
-
-
-# Global state
+# Global state — declared before lifespan so the coroutine reference is unambiguous
 artifacts: Optional[MLArtifacts] = None
 user_sessions: Dict[str, Dict[str, object]] = {}
 
 
-@app.on_event("startup")
-async def startup_event():
+# [FIX-3] Define lifespan context manager to initialize artifacts
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     global artifacts
     try:
         artifacts = fit_all(DATASET_PATH)
     except Exception as e:
-        # Surface error early to indicate missing or malformed dataset
         raise RuntimeError(f"Failed to initialize ML artifacts from {DATASET_PATH}: {e}")
+    yield
+    # No teardown actions required
+
+# [FIX-3] Pass lifespan to FastAPI constructor
+app = FastAPI(title="Affect-Aware Music Recommendation System", lifespan=lifespan)
 
 
 @app.get("/")
@@ -126,13 +130,16 @@ async def predict_genre(req: PredictRequest):
 
 
 @app.get("/recommend")
-async def recommend(track_id: str = Query(..., description="Seed track_id to find similar tracks"), k: int = 5):
+async def recommend(track_id: str = Query(..., description="Seed track_id (original dataset value) to find similar tracks"), k: int = 5):
     if artifacts is None:
         raise HTTPException(status_code=503, detail="Model not initialized")
-    try:
-        recs = recommend_similar_tracks(artifacts, track_id, k=k)
-    except KeyError:
+    # [FIX-2] Map user-provided original track_id to internal surrogate _row_key for lookup
+    # [FIX-B] O(1) lookup via pre-built track_id_to_row_keys dict instead of O(N) DataFrame scan
+    row_keys = artifacts.track_id_to_row_keys.get(str(track_id))
+    if not row_keys:
         raise HTTPException(status_code=404, detail=f"Unknown track_id: {track_id}")
+    surrogate_key = str(row_keys[0])  # use first occurrence as seed
+    recs = recommend_similar_tracks(artifacts, surrogate_key, k=k)
     return {"recommendations": recs}
 
 
@@ -141,11 +148,12 @@ async def play_track(req: PlayTrackRequest):
     if artifacts is None:
         raise HTTPException(status_code=503, detail="Model not initialized")
 
-    # Lookup the track in our dataset and pull raw features
-    tid = str(req.track_id)
-    if tid not in artifacts.id_to_index:
-        raise HTTPException(status_code=404, detail=f"Unknown track_id: {tid}")
-    idx = artifacts.id_to_index[tid]
+    # [FIX-B] O(1) lookup via pre-built track_id_to_row_keys dict instead of O(N) DataFrame scan
+    user_tid = str(req.track_id)
+    row_keys = artifacts.track_id_to_row_keys.get(user_tid)
+    if not row_keys:
+        raise HTTPException(status_code=404, detail=f"Unknown track_id: {user_tid}")
+    idx = int(row_keys[0])
 
     row = artifacts.df.iloc[idx]
     features = {c: float(row[c]) for c in NUMERIC_FEATURE_COLUMNS}
@@ -154,7 +162,8 @@ async def play_track(req: PlayTrackRequest):
     sess = user_sessions.setdefault(req.user_id, {"history": [], "rolling_avg": None})
 
     # Maintain a fixed-size history (keep last ROLLING_WINDOW items)
-    sess["history"].append({"track_id": tid, "features": features})
+    # [FIX-2] Store display track_id but route via internal index for features
+    sess["history"].append({"track_id": user_tid, "features": features})
     if len(sess["history"]) > ROLLING_WINDOW:
         sess["history"] = sess["history"][-ROLLING_WINDOW:]
 

@@ -20,8 +20,10 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy application
 COPY . /app
 
-# Expose port (Render sets $PORT; expose is informational)
-EXPOSE 8000
+# [FIX-6] EXPOSE is documentation-only and may mislead on platforms like Render where $PORT is injected at runtime.
+# [FIX-6] The command below already binds to ${PORT:-8000}, which is correct. We remove EXPOSE to avoid implying a fixed port.
+# [FIX-6] If desired, one could write `EXPOSE ${PORT:-8000}`, but ENV substitution in EXPOSE isn't portable across Docker versions.
+# EXPOSE removed intentionally.
 
 # Command: bind to 0.0.0.0 and use Render's PORT env var with default 8000
 CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
