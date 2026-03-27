@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}MoodTune - Affect Analysis{% endblock %}
+
+{% block content %}
+<main class="relative pt-16 pb-20 min-h-screen flex flex-col items-center justify-center overflow-y-auto">
+  <div class="absolute inset-0 z-0 opacity-20 pointer-events-none overflow-hidden">
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-white/5 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-white/5 rounded-full blur-[80px]"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-2xl px-6 flex flex-col items-center">
+    
+    <div class="w-full mb-12 text-center md:text-left">
+      <p class="font-manrope text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-2">AFFECTIVE ANALYSIS ENGINE</p>
+      <h2 class="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-4">Genre Predictor</h2>
+      <div class="h-[1px] w-12 bg-primary/30 mx-auto md:mx-0"></div>
+    </div>
+
+    <div class="w-full bg-surface-container-low p-12 rounded-lg border border-outline-variant/10 flex flex-col items-center justify-center space-y-8">
+      
+      <div class="relative flex items-center justify-center w-24 h-24">
+        <div class="absolute inset-0 border-2 border-primary/20 rounded-full animate-ping"></div>
+        <div class="absolute inset-2 border border-primary/40 rounded-full"></div>
+        <span class="material-symbols-outlined text-4xl text-primary animate-pulse" data-icon="psychology">psychology</span>
+      </div>
+      
+      <div class="text-center space-y-2">
+        <h3 class="text-on-surface font-bold tracking-tight text-lg">Analyzing Audio Signatures</h3>
+        <p id="statusText" class="text-on-surface-variant text-sm font-medium tracking-wide">Syncing with neural affect-model...</p>
+      </div>
+      
+      <div class="w-full max-w-xs bg-surface-container-high h-1 rounded-full overflow-hidden">
+        <div id="progressBar" class="bg-primary h-full w-1/3 transition-all duration-[3000ms] ease-in-out"></div>
+      </div>
+      
+      <div class="flex gap-4">
+        <span class="font-manrope text-[9px] font-bold uppercase tracking-widest text-outline-variant">Bitrate: 24-bit</span>
+        <span class="font-manrope text-[9px] font-bold uppercase tracking-widest text-outline-variant">Sample: 96khz</span>
+        <span class="font-manrope text-[9px] font-bold uppercase tracking-widest text-outline-variant">Latency: 12ms</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 w-full mt-6 opacity-40">
+      <div class="bg-surface-container h-24 rounded-lg border border-outline-variant/5 p-4 flex flex-col justify-between">
+        <span class="material-symbols-outlined text-sm" data-icon="graphic_eq">graphic_eq</span>
+        <span class="font-manrope text-[9px] font-bold uppercase tracking-widest">Waveform Sync</span>
+      </div>
+      <div class="bg-surface-container h-24 rounded-lg border border-outline-variant/5 p-4 flex flex-col justify-between">
+        <span class="material-symbols-outlined text-sm" data-icon="equalizer">equalizer</span>
+        <span class="font-manrope text-[9px] font-bold uppercase tracking-widest">Timbral Profile</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-lg z-40 bg-surface-container-high/60 backdrop-blur-2xl border border-outline-variant/10 rounded-full h-14 flex items-center px-4 justify-between shadow-2xl">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center">
+      <span class="material-symbols-outlined text-zinc-600 text-2xl">music_note</span>
+    </div>
+    <div class="flex flex-col">
+      <span class="text-[10px] font-bold text-white leading-none">NO SIGNAL</span>
+      <span class="text-[9px] font-medium text-on-surface-variant tracking-wider">WAITING FOR INPUT...</span>
+    </div>
+  </div>
+  <div class="flex items-center gap-4">
+    <span class="material-symbols-outlined text-primary/40 text-xl" data-icon="skip_previous">skip_previous</span>
+    <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center">
+      <span class="material-symbols-outlined text-background text-sm" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+    </div>
+    <span class="material-symbols-outlined text-primary/40 text-xl" data-icon="skip_next">skip_next</span>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    
+    // Animate width to 100% over the 3 second period
+    if (progressBar) {
+        setTimeout(() => {
+            progressBar.style.width = '100%';
+        }, 50);
+    }
+
+    setTimeout(() => {
+        if (statusText) {
+            statusText.textContent = 'Connection Established';
+        }
+        
+        // Wait briefly so user sees the "Connection Established" text before reload
+        setTimeout(() => {
+            window.location.href = '/predictor';
+        }, 600);
+        
+    }, 3000);
+});
+</script>
+{% endblock %}

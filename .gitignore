@@ -24,6 +24,7 @@ ENV/
 .vscode/*
 !.vscode/settings.json
 .idea/
+.qodo/
 *.swp
 *.swo
 *.tmp
@@ -33,12 +34,13 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Caches
+# Caches & ML Logs
 .cache/
 .mypy_cache/
 .pytype/
 .pyre/
-pytest_cache/
+.pytest_cache/
+catboost_info/
 
 # Build & dist
 build/
@@ -56,25 +58,24 @@ coverage.xml
 *.bak
 
 # Data & artifacts
-# Avoid committing large local datasets or trained models by default
+# Allowing dataset.csv (~19MB) for fresh training, but strictly ignoring large models
+!dataset.csv
+artifacts.pkl
+*.pkl
 
-!requirements*.csv  # allow any requirements in csv format if you use them
+# Other data formats
 *.tsv
 *.parquet
 *.feather
 *.h5
 *.hdf5
 *.joblib
-*.pkl
 models/
 artifacts/
 checkpoints/
 
 # Docker
 *.tar
-
-# Node (if any frontend assets later)
-node_modules/
 
 # Reports/outputs
 outputs/

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>{% block title %}MoodTune{% endblock %}</title>
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container-high": "#2a2a2c",
+            "on-background": "#e5e1e4",
+            "on-secondary": "#1a1b22",
+            "on-secondary-container": "#e2e1eb",
+            "primary": "#ffffff",
+            "inverse-primary": "#5d5f5f",
+            "inverse-on-surface": "#313032",
+            "on-tertiary-fixed-variant": "#e4e1e6",
+            "primary-fixed-dim": "#454747",
+            "on-primary-fixed": "#ffffff",
+            "on-error": "#690005",
+            "secondary-container": "#45464e",
+            "on-surface": "#e5e1e4",
+            "primary-container": "#d4d4d4",
+            "error": "#ffb4ab",
+            "surface-container-low": "#1c1b1d",
+            "on-tertiary-container": "#000000",
+            "surface-container-lowest": "#0e0e10",
+            "background": "#131315",
+            "primary-fixed": "#5d5f5f",
+            "tertiary-fixed-dim": "#47464a",
+            "outline": "#919191",
+            "on-error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#3a3b42",
+            "error-container": "#93000a",
+            "secondary-fixed": "#c6c6cf",
+            "on-primary": "#1a1c1c",
+            "secondary-fixed-dim": "#aaaab3",
+            "surface-container-highest": "#353437",
+            "secondary": "#c6c6cf",
+            "surface-bright": "#39393b",
+            "on-secondary-fixed": "#1a1b22",
+            "on-primary-fixed-variant": "#e2e2e2",
+            "inverse-surface": "#e5e1e4",
+            "on-tertiary-fixed": "#ffffff",
+            "surface-tint": "#c6c6c7",
+            "tertiary-container": "#929094",
+            "surface-dim": "#131315",
+            "tertiary": "#e4e1e6",
+            "outline-variant": "#474747",
+            "on-surface-variant": "#c6c6c6",
+            "surface-variant": "#353437",
+            "on-tertiary": "#1b1b1e",
+            "on-primary-container": "#000000",
+            "tertiary-fixed": "#5f5e61",
+            "surface-container": "#201f22",
+            "surface": "#131315"
+          },
+          fontFamily: {
+            "headline": ["Manrope"],
+            "body": ["Manrope"],
+            "label": ["Manrope"]
+          },
+          borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+        },
+      },
+    }
+  </script>
+
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  <!-- Any page-specific CSS can be injected here -->
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body class="bg-background text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen pb-32">
+  
+  <header class="bg-[#131315] dark:bg-[#131315] flex justify-between items-center w-full px-6 h-16 top-0 z-50 border-b border-white/10 sticky">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-white text-2xl" data-icon="graphic_eq">graphic_eq</span>
+      <h1 class="font-headline font-bold text-white text-lg uppercase tracking-[-0.02em]">MOODTUNE</h1>
+    </div>
+    
+    <div class="hidden md:flex items-center gap-8">
+      <a class="{% block nav_predictor %}text-zinc-500 hover:text-white{% endblock %} transition-colors duration-200 font-label font-bold tracking-[0.05em] text-[10px] uppercase" href="/predictor">PREDICTOR</a>
+      <a class="{% block nav_recommender %}text-zinc-500 hover:text-white{% endblock %} transition-colors duration-200 font-label font-bold tracking-[0.05em] text-[10px] uppercase" href="/recommender">RECOMMENDER</a>
+      <a class="{% block nav_session %}text-zinc-500 hover:text-white{% endblock %} transition-colors duration-200 font-label font-bold tracking-[0.05em] text-[10px] uppercase" href="/session">SESSION</a>
+    </div>
+    
+    <div class="flex items-center gap-4">
+      <button class="text-white opacity-70 hover:opacity-100 transition-all">
+        <span class="material-symbols-outlined" data-icon="search">search</span>
+      </button>
+      <div class="w-8 h-8 rounded-lg bg-surface-container-high border border-outline-variant/20 flex items-center justify-center overflow-hidden">
+        <img alt="Profile" class="w-full h-full object-cover" src="{{ url_for('static', path='images/profile.jpg') }}"/>
+      </div>
+    </div>
+  </header>
+
+  {% block content %}{% endblock %}
+
+  <nav class="fixed bottom-0 left-0 w-full bg-[#131315]/80 dark:bg-[#131315]/80 backdrop-blur-xl flex justify-around items-center h-20 px-4 pb-[env(safe-area-inset-bottom)] z-50 border-t border-white/5 md:hidden">
+    <a class="flex flex-col items-center justify-center px-4 py-1 transition-all active:scale-95 {% block mob_nav_predictor %}text-zinc-500 hover:text-zinc-200{% endblock %}" href="/predictor">
+      <span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+      <span class="font-label text-[10px] font-bold tracking-[0.05em] uppercase mt-1">PREDICTOR</span>
+    </a>
+    <a class="flex flex-col items-center justify-center px-4 py-1 transition-all active:scale-95 {% block mob_nav_recommender %}text-zinc-500 hover:text-zinc-200{% endblock %}" href="/recommender">
+      <span class="material-symbols-outlined" data-icon="library_music">library_music</span>
+      <span class="font-label text-[10px] font-bold tracking-[0.05em] uppercase mt-1">RECOMMENDER</span>
+    </a>
+    <a class="flex flex-col items-center justify-center px-4 py-1 transition-all active:scale-95 {% block mob_nav_session %}text-zinc-500 hover:text-zinc-200{% endblock %}" href="/session">
+      <span class="material-symbols-outlined" data-icon="settings_input_component">settings_input_component</span>
+      <span class="font-label text-[10px] font-bold tracking-[0.05em] uppercase mt-1">SESSION</span>
+    </a>
+  </nav>
+
+</body>
+</html>

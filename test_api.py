@@ -125,11 +125,19 @@ def new_user() -> str:
 
 def test_root_ok():
     """Root endpoint returns status 'ok' and lists all four expected endpoint paths."""
-    resp = requests.get(f"{BASE}/")
+    resp = requests.get(f"{BASE}/api")
     assert resp.status_code == 200
     body = resp.json()
     assert body.get("status") == "ok"
-    for ep in ["/predict_genre", "/recommend", "/play_track", "/intervention"]:
+    for ep in [
+        "/predict_genre",
+        "/predict_genre_batch",
+        "/recommend",
+        "/play_track",
+        "/intervention",
+        "/feature_importance",
+        "/session/{user_id}",
+    ]:
         assert ep in body.get("endpoints", [])
 
 
@@ -233,7 +241,9 @@ def test_recommend_result_fields():
 
 def test_recommend_distances_ascending():
     """Recommendations are sorted by ascending cosine distance (most similar first)."""
-    resp = requests.get(f"{BASE}/recommend", params={"track_id": SEED_TRACK_ID})
+    # genre_aware=False is strictly required here because genre-aware filtering
+    # disrupts pure distance-based sorting by floating preferred super-genres to the top.
+    resp = requests.get(f"{BASE}/recommend", params={"track_id": SEED_TRACK_ID, "genre_aware": False})
     assert resp.status_code == 200
     distances = [r["distance"] for r in resp.json().get("recommendations", [])]
     assert distances == sorted(distances)
@@ -440,7 +450,7 @@ def test_intervention_message_contains_helpline_reference():
     resp = requests.get(f"{BASE}/intervention", params={"user_id": user_id})
     assert resp.status_code == 200
     msg = resp.json().get("message", "").lower()
-    assert any(token in msg for token in ("988", "helpline", "support"))
+    assert any(token in msg for token in ("icall", "vandrevala", "findahelpline"))
 
 
 def test_intervention_rolling_avg_below_thresholds():
@@ -498,3 +508,81 @@ def test_intervention_missing_user_id():
     """Omitting the user_id query parameter returns 422."""
     resp = requests.get(f"{BASE}/intervention")
     assert resp.status_code == 422
+
+
+# Group 10 — Session history endpoints
+
+def test_session_history_returns_recent_tracks():
+    """GET /session returns history, rolling_avg, and intervention flag for a known user."""
+    user_id = _build_sad_session()
+    resp = requests.get(f"{BASE}/session/{user_id}")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body.get("user_id") == user_id
+    assert isinstance(body.get("history"), list)
+    assert body.get("history_length") == len(body.get("history"))
+    assert body.get("history_length") == 5
+    assert isinstance(body.get("rolling_valence"), float)
+    assert isinstance(body.get("rolling_energy"), float)
+    assert isinstance(body.get("intervention_active"), bool)
+
+
+def test_reset_session_clears_history():
+    """DELETE /session clears stored history so subsequent fetch returns 404."""
+    user_id = _build_sad_session(2)
+    del_resp = requests.delete(f"{BASE}/session/{user_id}")
+    assert del_resp.status_code == 200
+    get_resp = requests.get(f"{BASE}/session/{user_id}")
+    assert get_resp.status_code == 404
+
+
+# Group 11 — Batch genre prediction
+
+def test_predict_genre_batch_three_tracks():
+    """Batch endpoint returns predictions for each track in the list."""
+    payload = {
+        "tracks": [
+            {"features": HAPPY_FEATURES},
+            {"features": SAD_FEATURES},
+            {"features": HAPPY_FEATURES},
+        ]
+    }
+    resp = requests.post(f"{BASE}/predict_genre_batch", json=payload)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body.get("count") == 3
+    preds = body.get("predictions", [])
+    assert len(preds) == 3
+    for pred in preds:
+        assert isinstance(pred.get("predicted_genre"), str)
+        assert isinstance(pred.get("confidence"), float)
+
+
+def test_predict_genre_batch_over_limit():
+    """Sending more than 100 tracks in a batch returns 400."""
+    payload = {"tracks": [{"features": HAPPY_FEATURES} for _ in range(101)]}
+    resp = requests.post(f"{BASE}/predict_genre_batch", json=payload)
+    assert resp.status_code == 400
+
+
+def test_predict_genre_batch_malformed_track():
+    """A batch containing a malformed track payload returns 422."""
+    bad_features = dict(HAPPY_FEATURES)
+    bad_features.pop("valence")
+    payload = {"tracks": [{"features": HAPPY_FEATURES}, {"features": bad_features}]}
+    resp = requests.post(f"{BASE}/predict_genre_batch", json=payload)
+    assert resp.status_code == 422
+
+
+# Group 12 — Feature importance
+
+def test_feature_importance_sorted_and_complete():
+    """Feature importance endpoint returns sorted importances for all numeric features."""
+    resp = requests.get(f"{BASE}/feature_importance")
+    assert resp.status_code == 200
+    items = resp.json().get("feature_importance", [])
+    assert len(items) == 29  # 14 raw + 15 engineered features
+    names = [item["feature"] for item in items]
+    assert "valence" in names and "energy" in names
+    importances = [item["importance"] for item in items]
+    assert importances == sorted(importances, reverse=True)

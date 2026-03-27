@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}MoodTune - Performance{% endblock %}
+
+{% block nav_predictor %}text-white{% endblock %}
+{% block mob_nav_predictor %}text-white bg-zinc-800 rounded-lg{% endblock %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-6 py-12 pb-32">
+  <div class="mb-12">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+      <span class="font-label text-[10px] font-bold tracking-[0.1em] text-on-surface-variant uppercase">SYSTEM STATUS: NOMINAL</span>
+    </div>
+    <h2 class="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white mb-4">Model Performance</h2>
+    <p class="text-on-surface-variant max-w-2xl font-light leading-relaxed">Technical analysis of the MoodTune neural engine. Visualizing real-time classification metrics, latent space vectorization, and recommendation integrity across four key performance sectors.</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+    <div class="md:col-span-8 bg-surface-container-low rounded-lg p-6 border border-white/[0.03] flex flex-col">
+      <div class="flex justify-between items-start mb-6">
+        <div><h3 class="text-white font-bold text-lg mb-1 tracking-tight">Fine Genre Classification</h3><p class="text-on-surface-variant text-xs font-label tracking-wider uppercase">LABELS: 37 FINE GENRES</p></div>
+        <span class="material-symbols-outlined text-zinc-600">query_stats</span>
+      </div>
+
+      <!-- INJECTED METRICS BLOCK -->
+      <div class="grid grid-cols-3 gap-4 mb-8">
+        <div class="bg-surface-container-high rounded p-4 border border-white/5">
+          <span class="block text-[10px] text-zinc-500 uppercase tracking-widest mb-1">TOP-1 ACCURACY</span>
+          <span id="fineTop1" class="text-2xl font-mono text-white tracking-widest">--%</span>
+        </div>
+        <div class="bg-surface-container-high rounded p-4 border border-white/5">
+          <span class="block text-[10px] text-zinc-500 uppercase tracking-widest mb-1">TOP-3 ACCURACY</span>
+          <span id="fineTop3" class="text-2xl font-mono text-white tracking-widest">--%</span>
+        </div>
+        <div class="bg-surface-container-high rounded p-4 border border-white/5">
+          <span class="block text-[10px] text-zinc-500 uppercase tracking-widest mb-1">MACRO F1</span>
+          <span id="fineMacroF1" class="text-2xl font-mono text-white tracking-widest">--</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto mt-auto border-t border-white/5 pt-6">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-outline-variant/20">
+              <th class="pb-3 font-label text-[10px] tracking-widest text-on-surface-variant uppercase">SUB-GENRE</th><th class="pb-3 font-label text-[10px] tracking-widest text-on-surface-variant uppercase">F1 SCORE</th><th class="pb-3 font-label text-[10px] tracking-widest text-on-surface-variant uppercase">LATENCY</th><th class="pb-3 font-label text-[10px] tracking-widest text-on-surface-variant uppercase">CONFIDENCE</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-outline-variant/10">
+            <tr class="group hover:bg-surface-bright transition-colors"><td class="py-4 text-sm font-medium text-on-surface">Ambient Techno</td><td class="py-4 text-sm font-mono text-primary">0.962</td><td class="py-4 text-sm font-mono text-on-surface-variant">12ms</td><td class="py-4"><div class="flex items-center gap-2"><div class="flex-1 h-1 bg-surface-container-highest rounded-full overflow-hidden"><div class="bg-primary h-full w-[96%]"></div></div></div></td></tr>
+            <tr class="group hover:bg-surface-bright transition-colors"><td class="py-4 text-sm font-medium text-on-surface">Neo-Classical Soul</td><td class="py-4 text-sm font-mono text-primary">0.941</td><td class="py-4 text-sm font-mono text-on-surface-variant">14ms</td><td class="py-4"><div class="flex items-center gap-2"><div class="flex-1 h-1 bg-surface-container-highest rounded-full overflow-hidden"><div class="bg-primary h-full w-[94%]"></div></div></div></td></tr>
+            <tr class="group hover:bg-surface-bright transition-colors"><td class="py-4 text-sm font-medium text-on-surface">Industrial IDM</td><td class="py-4 text-sm font-mono text-primary">0.898</td><td class="py-4 text-sm font-mono text-on-surface-variant">11ms</td><td class="py-4"><div class="flex items-center gap-2"><div class="flex-1 h-1 bg-surface-container-highest rounded-full overflow-hidden"><div class="bg-primary h-full w-[89%]"></div></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="md:col-span-4 bg-surface-container-high rounded-lg p-6 flex flex-col justify-between overflow-hidden relative group">
+      <div class="relative z-10"><h3 class="text-white font-bold text-lg mb-1 tracking-tight">Coarse Super-Genre</h3><p class="text-on-surface-variant text-xs font-label tracking-wider uppercase">CLUSTER METRICS</p></div>
+      
+      <!-- INJECTED COARSE METRICS -->
+      <div class="my-6 space-y-4 relative z-10 bg-surface-container-low/50 p-4 rounded-lg border border-white/5">
+        <div class="flex justify-between items-end border-b border-white/5 pb-3">
+          <span class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">TOP-1 ACCURACY</span>
+          <span id="coarseTop1" class="text-xl font-mono text-white tracking-tight">--%</span>
+        </div>
+        <div class="flex justify-between items-end border-b border-white/5 pb-3">
+          <span class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">TOP-3 ACCURACY</span>
+          <span id="coarseTop3" class="text-xl font-mono text-white tracking-tight">--%</span>
+        </div>
+        <div class="flex justify-between items-end">
+          <span class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">MACRO F1</span>
+          <span id="coarseMacroF1" class="text-xl font-mono text-white tracking-tight">--</span>
+        </div>
+      </div>
+
+      <div class="relative h-24 flex items-center justify-center mt-auto">
+        <div class="absolute inset-0 flex items-center justify-center"><div class="w-16 h-16 border border-primary/20 rounded-full animate-ping opacity-20"></div></div>
+      </div>
+    </div>
+
+    <!-- NEW FEATURE IMPORTANCE SECTION -->
+    <div class="md:col-span-12 mt-2 bg-surface-container-low rounded-lg p-6 border border-white/[0.03]">
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <h3 class="text-white font-bold text-lg mb-1 tracking-tight">Audio Feature Importance</h3>
+          <p class="text-on-surface-variant text-xs font-label tracking-wider uppercase">XGBOOST INFORMATION GAIN</p>
+        </div>
+        <span class="material-symbols-outlined text-zinc-600">bar_chart</span>
+      </div>
+      <div id="featureImportanceChart" class="space-y-3 pt-2">
+        <div class="text-sm text-zinc-500 italic flex items-center h-20 pl-4 border-l-2 border-white/10">Loading feature importances...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="mt-20 border-t border-outline-variant/20 pt-8 pb-12 flex flex-col md:flex-row justify-between items-start gap-8">
+    <div class="max-w-md">
+      <span class="text-[10px] font-bold tracking-[0.2em] text-white uppercase mb-4 block">Engine Technical Notes</span>
+      <p class="text-xs text-on-surface-variant leading-relaxed font-light">The MoodTune predictor utilizes a four-model soft-voting ensemble (XGBoost, LightGBM, CatBoost, MLP) trained on 29 audio features across 37 acoustically-coherent genre classes.</p>
+    </div>
+  </footer>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Fetch Model Metrics
+    try {
+        const metricsRes = await fetch('/model_metrics');
+        if (metricsRes.ok) {
+            const metrics = await metricsRes.json();
+
+            const formatPct = (val) => val != null ? (val * 100).toFixed(1) + '%' : '--%';
+            const formatDec = (val) => val != null ? val.toFixed(3) : '--';
+
+            // main.py returns: fine_genre_classification.top_1_accuracy, .top_3_accuracy, .macro_f1
+            const fine = metrics.fine_genre_classification || {};
+            document.getElementById('fineTop1').textContent = formatPct(fine.top_1_accuracy);
+            document.getElementById('fineTop3').textContent = formatPct(fine.top_3_accuracy);
+            document.getElementById('fineMacroF1').textContent = formatDec(fine.macro_f1);
+
+            // main.py returns: coarse_super_genre_classification.top_1_accuracy, .top_3_accuracy, .macro_f1
+            const coarse = metrics.coarse_super_genre_classification || {};
+            document.getElementById('coarseTop1').textContent = formatPct(coarse.top_1_accuracy);
+            document.getElementById('coarseTop3').textContent = formatPct(coarse.top_3_accuracy);
+            document.getElementById('coarseMacroF1').textContent = formatDec(coarse.macro_f1);
+        }
+    } catch (e) {
+        console.error('Error fetching model metrics:', e);
+    }
+
+    // 2. Fetch Feature Importance & Map to Visual Chart
+    try {
+        const fiRes = await fetch('/feature_importance');
+        if (fiRes.ok) {
+            const data = await fiRes.json();
+
+            // main.py returns: { feature_importance: [{feature, importance}, ...] }
+            let features = data.feature_importance || data;
+
+            // Fallback: normalize dict -> array if needed
+            if (!Array.isArray(features)) {
+                features = Object.entries(features).map(([f, imp]) => ({ feature: f, importance: imp }));
+            }
+
+            // Sort descending and take top 10 features
+            features.sort((a, b) => b.importance - a.importance);
+            features = features.slice(0, 10);
+
+            // Calculate max for proportional scaling of the bars
+            const maxImp = Math.max(...features.map(f => f.importance), 0.01);
+
+            const chartContainer = document.getElementById('featureImportanceChart');
+            chartContainer.innerHTML = ''; // Clear loading text
+
+            features.forEach(f => {
+                const pct = (f.importance / maxImp) * 100;
+
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-4 group px-2';
+
+                div.innerHTML = `
+                    <div class="w-32 shrink-0 text-right">
+                        <span class="text-[11px] font-bold text-on-surface-variant group-hover:text-white transition-colors uppercase tracking-widest">${f.feature}</span>
+                    </div>
+                    <div class="flex-1 h-2 bg-surface-container-highest rounded-full overflow-hidden relative">
+                        <div class="absolute left-0 top-0 bottom-0 bg-primary opacity-80 group-hover:opacity-100 transition-all duration-1000 ease-out" style="width: ${pct}%"></div>
+                    </div>
+                    <div class="w-16 shrink-0 text-left">
+                        <span class="text-xs font-mono text-white/50 group-hover:text-white transition-colors">${f.importance.toFixed(3)}</span>
+                    </div>
+                `;
+                chartContainer.appendChild(div);
+            });
+        } else {
+            document.getElementById('featureImportanceChart').innerHTML = '<div class="text-sm text-red-500 pl-4 py-2 border-l-2 border-red-500/20">Failed to load feature importance.</div>';
+        }
+    } catch (e) {
+        console.error('Error fetching feature importance:', e);
+        document.getElementById('featureImportanceChart').innerHTML = '<div class="text-sm text-red-500 pl-4 py-2 border-l-2 border-red-500/20">Error connecting to server.</div>';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,18 @@
+MoodTune Model Performance Report
+==================================
+
+Taxonomy Architecture:
+  Fine Genres: 37 (Collapsed from 114 to remove unlearnable/linguistic tags)
+  Super-Genres: 10 (Acoustically cohesive clusters)
+
+Fine Genre Prediction (37 classes):
+  Top-1 Accuracy:  0.4831
+  Top-3 Accuracy:  0.7530
+  Top-5 Accuracy:  0.8456  <-- Primary Publishable Metric
+  Top-10 Accuracy: 0.9402
+  Macro-F1:        0.4415
+
+Coarse Super-Genre Prediction (10 classes):
+  Top-1 Accuracy:  0.6038
+  Top-3 Accuracy:  0.8759  <-- Primary Publishable Metric
+  Macro-F1:        0.5808

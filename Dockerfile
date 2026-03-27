@@ -1,29 +1,26 @@
-# Production-ready Dockerfile for FastAPI + Uvicorn on Python 3.10
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# Ensure Python output is unbuffered and no pyc files
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-# Set working directory
 WORKDIR /app
 
-# System deps (optional minimal)
-RUN apt-get update -y && apt-get install -y --no-install-recommends \
-    build-essential \
+# System deps for XGBoost & scientific Python
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency spec and install
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
-COPY . /app
+COPY dataset.csv      .
+COPY ml_pipeline.py   .
+COPY main.py          .
+COPY train_and_save.py .
 
-# [FIX-6] EXPOSE is documentation-only and may mislead on platforms like Render where $PORT is injected at runtime.
-# [FIX-6] The command below already binds to ${PORT:-8000}, which is correct. We remove EXPOSE to avoid implying a fixed port.
-# [FIX-6] If desired, one could write `EXPOSE ${PORT:-8000}`, but ENV substitution in EXPOSE isn't portable across Docker versions.
-# EXPOSE removed intentionally.
+# If artifacts.pkl already exists (pre-built), it will be used at startup.
+# Otherwise, the server trains from scratch on first boot (slower).
+COPY artifacts.pkl* ./
+COPY static/ ./static/
+COPY templates/ ./templates/
 
-# Command: bind to 0.0.0.0 and use Render's PORT env var with default 8000
-CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
