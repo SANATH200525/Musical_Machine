@@ -1,6 +1,6 @@
 @echo off
 echo =========================================
-echo MoodTune Initialization & Run Script
+echo MoodTune Initialization and Run Script
 echo =========================================
 
 :: Check if the virtual environment exists
